@@ -1,16 +1,42 @@
-# Integrating `agent-diagram` into AI Coding Agents
+# AI Agent Integration Guide: `agent-diagram`
 
-This guide explains how to connect `agent-diagram` to AI coding assistants including **Google Antigravity CLI (`agy`)**, **Claude Code**, **Cursor**, **Windsurf**, and custom LLM agent pipelines via the **Model Context Protocol (MCP)** or CLI subprocess.
+Comprehensive instructions for integrating `agent-diagram` across the entire ecosystem of AI coding assistants, including **Google Antigravity CLI (`agy`)**, **Anthropic Claude Code**, **OpenAI / Codex**, **OpenCode**, **Cursor**, **Windsurf**, and **Aider / Terminal CLI agents**.
 
 ---
 
-## 1. Antigravity CLI (`agy`)
+## Supported Agent Platforms
 
-Antigravity CLI discovers MCP servers from user configuration and presents them as native callable tools to Gemini agents.
+| Agent / CLI Surface | Integration Mechanism | Protocol / Interface |
+| :--- | :--- | :--- |
+| **Google Antigravity (`agy`)** | Native Plugin or Global MCP | Stdio MCP (`~/.gemini/config/mcp_config.json`) |
+| **Claude Code CLI** | CLI MCP Registration | Stdio MCP (`claude mcp add`) |
+| **OpenAI / Codex** | Function Calling & Shell Tool | OpenAI JSON Tool Schema / Subprocess |
+| **OpenCode CLI** | Native MCP Config | Stdio MCP (`~/.config/opencode/mcp.json`) |
+| **Cursor & Windsurf** | Editor MCP Config | Stdio MCP (`~/.cursor/mcp.json`) |
+| **Aider & Terminal Shells** | Direct Stdin Pipe / Subprocess | UNIX Pipes (`cat flow.mmd \| agent-diagram render`) |
 
-### Step 1: Add to `mcp_config.json`
+---
 
-Add the server to your machine-wide configuration at `~/.gemini/config/mcp_config.json` (or within a workspace's `plugins/<name>/mcp_config.json`):
+## 1. Google Antigravity CLI (`agy`)
+
+Antigravity CLI provides two methods for integration:
+
+### Method A: Automated 1-Command Plugin Install (Recommended)
+
+From your `agent-diagram` workspace:
+
+```bash
+agent-diagram install-plugin
+```
+
+This automatically:
+- Installs the plugin into `~/.gemini/config/plugins/agent-diagram/`
+- Registers the MCP server in `~/.gemini/config/mcp_config.json`
+- Injects behavioral rules into `rules/AGENTS.md` so the agent proactively invokes `render_diagram`
+
+### Method B: Manual MCP Configuration
+
+Add the server to `~/.gemini/config/mcp_config.json`:
 
 ```json
 {
@@ -23,11 +49,7 @@ Add the server to your machine-wide configuration at `~/.gemini/config/mcp_confi
 }
 ```
 
-> **Tip:** If `agent-diagram` is not on your system `$PATH`, specify the absolute binary path (e.g. `/usr/local/bin/agent-diagram` or `/Users/<username>/go/bin/agent-diagram`).
-
-### Step 2: Add Agent Rule (`GEMINI.md` or `AGENTS.md`)
-
-Add the following rule to your repository root or `~/.gemini/config/rules/` to guide the agent on when to use `agent-diagram`:
+Add this rule to your project's `AGENTS.md` or `GEMINI.md`:
 
 ```markdown
 # Visualizing Interactions & Architectures
@@ -43,30 +65,26 @@ Whenever explaining:
 
 ---
 
-## 2. Claude Code CLI
+## 2. Anthropic Claude Code CLI
 
-Claude Code has first-class support for MCP servers using the `claude mcp` CLI.
+Claude Code has first-class support for MCP servers.
 
-### Step 1: Register the MCP Server
-
+### Step 1: Register the Tool
 ```bash
 claude mcp add agent-diagram -- agent-diagram mcp
 ```
 
-### Step 2: Verify Registration
-
+### Step 2: Verify Connection
 ```bash
 claude mcp list
 ```
-You should see:
+Expected output:
 ```text
 agent-diagram: agent-diagram mcp (running)
 ```
 
 ### Step 3: Add Steering Instruction (`CLAUDE.md`)
-
-In your repository's `CLAUDE.md`, add:
-
+Add this to your repository's `CLAUDE.md`:
 ```markdown
 ## Diagram Rendering
 When explaining multi-component flows, code execution paths, or architecture, prefer calling the `render_diagram` MCP tool with Mermaid syntax. Do not output raw Mermaid code fences or wide ASCII tables.
@@ -74,11 +92,83 @@ When explaining multi-component flows, code execution paths, or architecture, pr
 
 ---
 
-## 3. Cursor & Windsurf
+## 3. OpenAI / Codex & GitHub Copilot
 
-In Cursor or Windsurf, configure MCP servers through the editor settings or config file.
+For agents built on OpenAI models (`gpt-4o`, `o1`, Codex, or custom fine-tunes), define `render_diagram` as an OpenAI Function Calling tool.
 
-In `~/.cursor/mcp.json` (or project `.cursor/mcp.json`):
+### OpenAI Function Calling Schema (Python SDK)
+
+```python
+import json
+import subprocess
+from openai import OpenAI
+
+client = OpenAI()
+
+# 1. Define tool schema for Codex / OpenAI
+diagram_tool = {
+    "type": "function",
+    "function": {
+        "name": "render_diagram",
+        "description": (
+            "Render a Mermaid sequence diagram or flowchart as a terminal-native, "
+            "width-adaptive Unicode visualization. Use this tool when explaining code "
+            "execution, architecture, reconcilers, or distributed systems."
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "source": {
+                    "type": "string",
+                    "description": "Mermaid diagram syntax (e.g. sequenceDiagram or flowchart TD/LR)"
+                },
+                "width": {
+                    "type": "integer",
+                    "description": "Optional terminal width (auto-detected if omitted)"
+                },
+                "mode": {
+                    "type": "string",
+                    "enum": ["auto", "full", "compact", "narrow"],
+                    "description": "Layout mode (default: auto)"
+                }
+            },
+            "required": ["source"]
+        }
+    }
+}
+
+# 2. Local execution handler
+def execute_render_diagram(source: str, width: int = 0, mode: str = "auto") -> str:
+    cmd = ["agent-diagram", "render", "--mode", mode]
+    if width > 0:
+        cmd.extend(["--width", str(width)])
+    
+    proc = subprocess.run(cmd, input=source, text=True, capture_output=True)
+    return proc.stdout if proc.returncode == 0 else proc.stderr
+
+# 3. Agent execution loop
+response = client.chat.completions.create(
+    model="gpt-4o",
+    messages=[
+        {"role": "system", "content": "When explaining code architecture or flows, always call render_diagram."},
+        {"role": "user", "content": "Explain the Kueue StatefulSet resize flow."}
+    ],
+    tools=[diagram_tool]
+)
+
+tool_call = response.choices[0].message.tool_calls[0]
+arguments = json.loads(tool_call.function.arguments)
+terminal_art = execute_render_diagram(arguments["source"])
+print(terminal_art)
+```
+
+---
+
+## 4. OpenCode CLI
+
+OpenCode natively supports MCP servers.
+
+In `~/.config/opencode/mcp.json` (or `~/.opencode/config.json`):
 
 ```json
 {
@@ -93,59 +183,49 @@ In `~/.cursor/mcp.json` (or project `.cursor/mcp.json`):
 
 ---
 
-## 4. Custom Python Agents (LangChain, LlamaIndex, OpenAI SDK)
+## 5. Cursor & Windsurf IDEs
 
-If you are building custom AI agents in Python, you can invoke `agent-diagram` either via standard subprocess or MCP client:
+In Cursor or Windsurf, configure the tool in `~/.cursor/mcp.json` or within workspace settings:
 
-### Option A: Subprocess Execution
-
-```python
-import subprocess
-import shutil
-
-def render_terminal_diagram(mermaid_code: str, width: int = 100) -> str:
-    """Invokes agent-diagram CLI to convert Mermaid into terminal Unicode."""
-    binary = shutil.which("agent-diagram")
-    if not binary:
-        return f"```mermaid\n{mermaid_code}\n```"
-    
-    proc = subprocess.run(
-        [binary, "render", "--width", str(width), "--no-color"],
-        input=mermaid_code,
-        text=True,
-        capture_output=True
-    )
-    if proc.returncode == 0:
-        return proc.stdout
-    return f"Render error: {proc.stderr}"
-```
-
-### Option B: Python Function Tool for Function Calling
-
-```python
-from pydantic import BaseModel, Field
-
-class RenderDiagramInput(BaseModel):
-    source: str = Field(..., description="Mermaid diagram definition (sequenceDiagram or flowchart TD/LR)")
-    mode: str = Field("auto", description="Layout mode: 'auto', 'full', 'compact', or 'narrow'")
-
-def render_diagram_tool(input: RenderDiagramInput) -> str:
-    return render_terminal_diagram(input.source)
+```json
+{
+  "mcpServers": {
+    "agent-diagram": {
+      "command": "agent-diagram",
+      "args": ["mcp"]
+    }
+  }
+}
 ```
 
 ---
 
-## 5. MCP Protocol Specification
+## 6. Aider & Shell-Based AI CLIs (Piping & Subprocess)
 
-The `agent-diagram` MCP server implements JSON-RPC 2.0 over standard I/O:
+For agents like Aider, Mentat, or custom shell-based REPLs that execute shell commands directly:
 
-- **Method**: `tools/list`
-  - Returns `render_diagram` tool descriptor.
-- **Method**: `tools/call`
-  - Arguments:
-    - `source` (string, required): Mermaid diagram text.
-    - `width` (integer, optional): Desired column width.
-    - `mode` (string, optional): `"auto"`, `"full"`, `"compact"`, `"narrow"`.
-    - `ascii` (boolean, optional): Set `true` to disable UTF-8 box-drawing characters.
-  - Return:
-    - Text content block containing the rendered diagram.
+### Standard Input Pipe
+Instruct the agent to stream Mermaid code through `agent-diagram render`:
+
+```bash
+printf "sequenceDiagram\nparticipant A\nparticipant B\nA->>B: Ping\nB-->>A: Pong\n" | agent-diagram render
+```
+
+### Temporary File Rendering
+```bash
+agent-diagram render /tmp/flow.mmd --width 80
+```
+
+---
+
+## 7. Universal Agent Steering Rules
+
+Regardless of which agent platform you use, add this prompt instruction to ensure the model proactively calls `agent-diagram`:
+
+```text
+Whenever explaining multi-component architectures, controller/reconciler loops, 
+network protocols, or execution flows:
+1. Always formulate the flow as valid Mermaid (sequenceDiagram or flowchart TD/LR).
+2. Call the `render_diagram` tool with the source string.
+3. Do NOT output raw ```mermaid markdown fences or hand-drawn ASCII art.
+```

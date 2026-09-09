@@ -153,49 +153,38 @@ agent-diagram render diagram.mmd --ascii --no-color
 
 ---
 
-## AI Agent Integration (MCP)
+## AI Agent Integration (MCP & Beyond)
 
-`agent-diagram` implements a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) stdio server over JSON-RPC 2.0.
+`agent-diagram` implements a standard [Model Context Protocol (MCP)](https://modelcontextprotocol.io) stdio server over JSON-RPC 2.0 and supports OpenAI Function Calling, shell pipes, and native plugin bundles.
 
-### 1. Antigravity CLI (`agy`)
+Detailed instructions for every platform can be found in [docs/AGENT_INTEGRATION.md](docs/AGENT_INTEGRATION.md).
 
-Add `agent-diagram` to your global or project configuration:
-
-`~/.gemini/config/mcp_config.json`:
-```json
-{
-  "mcpServers": {
-    "agent-diagram": {
-      "command": "agent-diagram",
-      "args": ["mcp"]
-    }
-  }
-}
+### 1. Google Antigravity CLI (`agy`)
+Run the 1-command installer to install the plugin bundle and configure MCP:
+```bash
+agent-diagram install-plugin
 ```
 
-Now whenever you ask `agy`:
-> *"Explain how the StatefulSet resize reconciliation works in Kueue"*
-
-`agy` automatically calls `render_diagram` and prints the width-adapted visualization directly into your terminal session!
-
-### 2. Claude Code
-
-Register with Claude Code CLI:
-
+### 2. Anthropic Claude Code CLI
 ```bash
 claude mcp add agent-diagram -- agent-diagram mcp
 ```
 
-Verify it's connected:
-
-```bash
-claude mcp list
+### 3. OpenAI / Codex & GitHub Copilot
+Use the native JSON tool definition in Python / TypeScript SDK:
+```python
+tools = [{
+    "type": "function",
+    "function": {
+        "name": "render_diagram",
+        "description": "Render a Mermaid diagram into terminal Unicode",
+        "parameters": {"type": "object", "properties": {"source": {"type": "string"}}, "required": ["source"]}
+    }
+}]
 ```
 
-### 3. Cursor / Windsurf
-
-In `~/.cursor/mcp.json`:
-
+### 4. OpenCode CLI
+In `~/.config/opencode/mcp.json`:
 ```json
 {
   "mcpServers": {
@@ -205,6 +194,25 @@ In `~/.cursor/mcp.json`:
     }
   }
 }
+```
+
+### 5. Cursor & Windsurf
+In `~/.cursor/mcp.json`:
+```json
+{
+  "mcpServers": {
+    "agent-diagram": {
+      "command": "agent-diagram",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+### 6. Aider & Shell Agents
+Stream directly via standard input:
+```bash
+echo "flowchart TD\n A --> B" | agent-diagram render
 ```
 
 ---
