@@ -92,6 +92,11 @@ Sequence Diagram (Compact)
   - Cross terminations `-x`, `--x`
   - `autonumber` and event numbering
   - `Note over`, `Note left of`, `Note right of`
+- **State Diagrams (`stateDiagram-v2`, `stateDiagram`)**:
+  - Initial `[*]` and terminal `[*]` transitions
+  - State aliases (`state "Name" as ID`)
+  - Transition event triggers (`State1 --> State2 : Trigger`)
+  - State descriptions and annotations
 - **Flowcharts & DAGs (`flowchart TD`, `flowchart LR`, `graph TD`, `graph LR`)**:
   - Rectangular `[text]`, rounded `(text)`, diamond `{condition}`, stadium `([text])`, cylinder `[(db)]`
   - Directed edges `-->`, thick edges `==>`, dotted edges `-.->`, undirected `---`
@@ -255,12 +260,29 @@ echo "flowchart TD\n A --> B" | agent-diagram render
 
 ---
 
+## Roadmap & The Vision
+
+Our mission is to establish `agent-diagram` as the definitive terminal-native visualization standard in the AI era. Read our strategic manifesto in [VISION.md](VISION.md).
+
+We have active roadmap issues ready for OSS contributors:
+
+| Issue | Title | Status / Area |
+| :--- | :--- | :--- |
+| [#1](https://github.com/kavix/agent-diagram/issues/1) | **Interactive TUI Mode with Bubble Tea** (Pan, Zoom, Event Step-Through) | `enhancement`, `ui` |
+| [#2](https://github.com/kavix/agent-diagram/issues/2) | **High-Res Terminal Graphics Protocols** (Kitty, iTerm2 Inline, Sixel) | `graphics`, `protocol` |
+| [#3](https://github.com/kavix/agent-diagram/issues/3) | **Git Graph (`gitGraph`) Visualization** for Branching & Worktrees | `good first issue` |
+| [#4](https://github.com/kavix/agent-diagram/issues/4) | **Entity-Relationship & Class Diagrams** (`erDiagram`, `classDiagram`) | `diagram-type` |
+| [#5](https://github.com/kavix/agent-diagram/issues/5) | **Code Intelligence Linkage** (Jump from Diagram Node to `file:line`) | `core-architecture` |
+| [#6](https://github.com/kavix/agent-diagram/issues/6) | **Packaging & Distribution** (Homebrew Formula & GoReleaser) | `good first issue` |
+
+---
+
 ## Contributing
 
 We welcome contributions from the open-source community! Check out [CONTRIBUTING.md](CONTRIBUTING.md) for:
 - Development environment setup
 - Architectural deep dive
-- **Step-by-step guide to adding new diagram types** (`stateDiagram-v2`, `gitGraph`, `erDiagram`)
+- **Step-by-step guide to adding new diagram types**
 - Pull Request guidelines
 
 ---

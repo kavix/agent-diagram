@@ -30,6 +30,8 @@ func Render(diag ast.Diagram, opts RenderOptions) (string, error) {
 		return RenderSequence(d, opts)
 	case *ast.FlowchartDiagram:
 		return RenderFlowchart(d, opts)
+	case *ast.StateDiagram:
+		return RenderState(d, opts)
 	default:
 		return "", fmt.Errorf("unsupported diagram AST type: %T", diag)
 	}

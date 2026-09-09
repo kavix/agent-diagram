@@ -30,8 +30,11 @@ func Parse(source string) (ast.Diagram, error) {
 		if strings.HasPrefix(lower, "flowchart") || strings.HasPrefix(lower, "graph") {
 			return ParseFlowchart(lines[i:])
 		}
+		if strings.HasPrefix(lower, "statediagram") {
+			return ParseState(lines[i:])
+		}
 
-		return nil, fmt.Errorf("unsupported diagram header on line %d: %q (expected sequenceDiagram, flowchart, or graph)", i+1, trimmed)
+		return nil, fmt.Errorf("unsupported diagram header on line %d: %q (expected sequenceDiagram, flowchart, graph, or stateDiagram)", i+1, trimmed)
 	}
 
 	return nil, fmt.Errorf("no valid diagram header found in source")
