@@ -1,6 +1,6 @@
 # The Vision: The Next Software Engineering Tool in the AI Era
 
-> *"The terminal is not a legacy text interface—it is the universal canvas where autonomous AI agents and human engineers collaborate in real time."*
+> **"agent-diagram is the interface adapter between the AI agent, the software engineer, formal diagramming, and human hands typing and directing tools."**
 
 ---
 
@@ -71,12 +71,12 @@ We have opened dedicated issues on GitHub for community contributors:
 
 | Issue | Title | Difficulty |
 | :--- | :--- | :--- |
-| [#1](https://github.com/kavix/agent-diagram/issues/1) | **Interactive Terminal TUI Mode with Bubble Tea** (Pan, Zoom, Event Step-Through) | Intermediate |
-| [#2](https://github.com/kavix/agent-diagram/issues/2) | **High-Resolution Terminal Graphic Protocols** (Kitty, iTerm2 Inline, Sixel) | Advanced |
-| [#3](https://github.com/kavix/agent-diagram/issues/3) | **Git Graph (`gitGraph`) Visualization** for Branching & Worktrees | Beginner / Good First Issue |
-| [#4](https://github.com/kavix/agent-diagram/issues/4) | **Entity-Relationship and Class Diagrams** (`erDiagram` / `classDiagram`) | Intermediate |
-| [#5](https://github.com/kavix/agent-diagram/issues/5) | **Code-Aware Node Navigation** (Jump from Diagram Node to `file:line`) | Advanced |
-| [#6](https://github.com/kavix/agent-diagram/issues/6) | **Packaging: Homebrew Formula & GoReleaser** Automated Distribution | Beginner / Good First Issue |
+| [#8](https://github.com/kavix/agent-diagram/issues/8) | **Interactive Terminal TUI Mode with Bubble Tea** (Pan, Zoom, Event Step-Through) | Intermediate |
+| [#9](https://github.com/kavix/agent-diagram/issues/9) | **High-Resolution Terminal Graphic Protocols** (Kitty, iTerm2 Inline, Sixel) | Advanced |
+| [#10](https://github.com/kavix/agent-diagram/issues/10) | **Git Graph (`gitGraph`) Visualization** for Branching & Worktrees | Beginner / Good First Issue |
+| [#11](https://github.com/kavix/agent-diagram/issues/11) | **Entity-Relationship and Class Diagrams** (`erDiagram` / `classDiagram`) | Intermediate |
+| [#12](https://github.com/kavix/agent-diagram/issues/12) | **Code-Aware Node Navigation** (Jump from Diagram Node to `file:line`) | Advanced |
+| [#13](https://github.com/kavix/agent-diagram/issues/13) | **Packaging: Homebrew Formula & GoReleaser** Automated Distribution | Beginner / Good First Issue |
 
 ---
 

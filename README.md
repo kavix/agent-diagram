@@ -268,12 +268,12 @@ We have active roadmap issues ready for OSS contributors:
 
 | Issue | Title | Status / Area |
 | :--- | :--- | :--- |
-| [#1](https://github.com/kavix/agent-diagram/issues/1) | **Interactive TUI Mode with Bubble Tea** (Pan, Zoom, Event Step-Through) | `enhancement`, `ui` |
-| [#2](https://github.com/kavix/agent-diagram/issues/2) | **High-Res Terminal Graphics Protocols** (Kitty, iTerm2 Inline, Sixel) | `graphics`, `protocol` |
-| [#3](https://github.com/kavix/agent-diagram/issues/3) | **Git Graph (`gitGraph`) Visualization** for Branching & Worktrees | `good first issue` |
-| [#4](https://github.com/kavix/agent-diagram/issues/4) | **Entity-Relationship & Class Diagrams** (`erDiagram`, `classDiagram`) | `diagram-type` |
-| [#5](https://github.com/kavix/agent-diagram/issues/5) | **Code Intelligence Linkage** (Jump from Diagram Node to `file:line`) | `core-architecture` |
-| [#6](https://github.com/kavix/agent-diagram/issues/6) | **Packaging & Distribution** (Homebrew Formula & GoReleaser) | `good first issue` |
+| [#8](https://github.com/kavix/agent-diagram/issues/8) | **Interactive TUI Mode with Bubble Tea** (Pan, Zoom, Event Step-Through) | `enhancement`, `ui` |
+| [#9](https://github.com/kavix/agent-diagram/issues/9) | **High-Res Terminal Graphics Protocols** (Kitty, iTerm2 Inline, Sixel) | `graphics`, `protocol` |
+| [#10](https://github.com/kavix/agent-diagram/issues/10) | **Git Graph (`gitGraph`) Visualization** for Branching & Worktrees | `good first issue` |
+| [#11](https://github.com/kavix/agent-diagram/issues/11) | **Entity-Relationship & Class Diagrams** (`erDiagram`, `classDiagram`) | `diagram-type` |
+| [#12](https://github.com/kavix/agent-diagram/issues/12) | **Code Intelligence Linkage** (Jump from Diagram Node to `file:line`) | `core-architecture` |
+| [#13](https://github.com/kavix/agent-diagram/issues/13) | **Packaging & Distribution** (Homebrew Formula & GoReleaser) | `good first issue` |
 
 ---
 
