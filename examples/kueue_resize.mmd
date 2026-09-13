@@ -1,0 +1,12 @@
+sequenceDiagram
+    autonumber
+    participant STS as StatefulSet
+    participant WL as Workload
+    participant Rec as Reconciler
+    participant Client as Kubernetes API
+
+    Rec->>WL: Reconcile scale to zero
+    Rec->>Client: releaseScaleDownReservation()
+    Rec->>Client: Update PodSets[0].Count = 5
+    Rec-->>Client: clearOnHold()
+    Note over Rec,Client: Resize completed successfully

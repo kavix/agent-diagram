@@ -1,0 +1,9 @@
+flowchart TD
+    A[Start Reconcile] --> B{Workload OnHold?}
+    B -->|Yes| C[Clear OnHold Flag]
+    B -->|No| D{Scale Down Pending?}
+    D -->|Yes| E[Release Reservations]
+    D -->|No| F[Sync PodSet Count]
+    C --> G[Update API Server]
+    E --> G
+    F --> G

@@ -1,0 +1,6 @@
+flowchart LR
+    Client[Web Client] --> Gateway[API Gateway]
+    Gateway --> Auth[Auth Service]
+    Gateway --> Order[Order Service]
+    Order --> DB[(PostgreSQL)]
+    Order --> Queue[(Kafka Event Bus)]
