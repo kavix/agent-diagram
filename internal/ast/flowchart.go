@@ -34,10 +34,11 @@ const (
 
 // FlowNode represents a vertex or step in the flowchart.
 type FlowNode struct {
-	ID    string
-	Text  string
-	Shape NodeShape
-	Order int
+	ID     string
+	Text   string
+	Shape  NodeShape
+	Order  int
+	Source SourceRef
 }
 
 // FlowEdge represents a directed or undirected connection between two nodes.

@@ -31,25 +31,29 @@ func ParseSequence(lines []string) (*ast.SequenceDiagram, error) {
 
 	participantMap := make(map[string]*ast.Participant)
 
-	ensureParticipant := func(id string, label string) *ast.Participant {
-		if p, exists := participantMap[id]; exists {
-			if label != "" && p.Label == id {
-				p.Label = label
-			}
-			return p
+	ensureParticipant := func(id string, label string, src ast.SourceRef) *ast.Participant {
+	if p, exists := participantMap[id]; exists {
+		if label != "" && p.Label == id {
+			p.Label = label
 		}
-		if label == "" {
-			label = id
+		if p.Source.Line == 0 {
+			p.Source = src
 		}
-		p := &ast.Participant{
-			ID:    id,
-			Label: label,
-			Order: len(diag.Participants),
-		}
-		diag.Participants = append(diag.Participants, p)
-		participantMap[id] = p
 		return p
 	}
+	if label == "" {
+		label = id
+	}
+	p := &ast.Participant{
+		ID:     id,
+		Label:  label,
+		Order:  len(diag.Participants),
+		Source: src,
+	}
+	diag.Participants = append(diag.Participants, p)
+	participantMap[id] = p
+	return p
+}
 
 	eventCounter := 1
 
@@ -76,80 +80,80 @@ func ParseSequence(lines []string) (*ast.SequenceDiagram, error) {
 			continue
 		}
 
-		// Participant
-		if m := participantRegex.FindStringSubmatch(line); len(m) > 1 {
-			id := m[1]
-			label := id
-			if len(m) > 2 && m[2] != "" {
-				label = strings.TrimSpace(m[2])
-			}
-			ensureParticipant(id, label)
-			continue
+// Participant
+if m := participantRegex.FindStringSubmatch(line); len(m) > 1 {
+	id := m[1]
+	label := id
+	if len(m) > 2 && m[2] != "" {
+		label = strings.TrimSpace(m[2])
+	}
+	ensureParticipant(id, label, ast.SourceRef{Line: lineIdx + 1})
+	continue
+}
+// Message
+	if m := messageRegex.FindStringSubmatch(line); len(m) == 5 {
+		from := m[1]
+		arrowStr := m[2]
+		to := m[3]
+		msg := strings.TrimSpace(m[4])
+
+		ensureParticipant(from, "", ast.SourceRef{Line: lineIdx + 1})
+		ensureParticipant(to, "", ast.SourceRef{Line: lineIdx + 1})
+
+		eventNum := 0
+		if diag.AutoNumber {
+			eventNum = eventCounter
+			eventCounter++
 		}
 
-		// Message
-		if m := messageRegex.FindStringSubmatch(line); len(m) == 5 {
-			from := m[1]
-			arrowStr := m[2]
-			to := m[3]
-			msg := strings.TrimSpace(m[4])
-
-			ensureParticipant(from, "")
-			ensureParticipant(to, "")
-
-			eventNum := 0
-			if diag.AutoNumber {
-				eventNum = eventCounter
-				eventCounter++
-			}
-
-			event := &ast.SequenceEvent{
-				Number:  eventNum,
-				From:    from,
-				To:      to,
-				Message: msg,
-				Arrow:   ast.ArrowType(arrowStr),
-			}
-			diag.Events = append(diag.Events, event)
-			continue
+		event := &ast.SequenceEvent{
+			Number:  eventNum,
+			From:    from,
+			To:      to,
+			Message: msg,
+			Arrow:   ast.ArrowType(arrowStr),
+			Source:  ast.SourceRef{Line: lineIdx + 1},
 		}
 
+		diag.Events = append(diag.Events, event)
+		continue
+	}
 		// Note
-		if m := noteRegex.FindStringSubmatch(line); len(m) == 4 {
-			posStr := strings.ToLower(strings.TrimSpace(m[1]))
-			partStr := m[2]
-			text := strings.TrimSpace(m[3])
+	if m := noteRegex.FindStringSubmatch(line); len(m) == 4 {
+		posStr := strings.ToLower(strings.TrimSpace(m[1]))
+		partStr := m[2]
+		text := strings.TrimSpace(m[3])
 
-			var pos ast.NotePosition
-			switch posStr {
-			case "over":
-				pos = ast.NoteOver
-			case "left of":
-				pos = ast.NoteLeftOf
-			case "right of":
-				pos = ast.NoteRightOf
-			default:
-				pos = ast.NoteOver
-			}
-
-			parts := strings.Split(partStr, ",")
-			var noteParticipants []string
-			for _, p := range parts {
-				pClean := strings.TrimSpace(p)
-				if pClean != "" {
-					ensureParticipant(pClean, "")
-					noteParticipants = append(noteParticipants, pClean)
-				}
-			}
-
-			diag.Notes = append(diag.Notes, &ast.SequenceNote{
-				Participants: noteParticipants,
-				Position:     pos,
-				Text:         text,
-			})
-			continue
+		var pos ast.NotePosition
+		switch posStr {
+		case "over":
+			pos = ast.NoteOver
+		case "left of":
+			pos = ast.NoteLeftOf
+		case "right of":
+			pos = ast.NoteRightOf
+		default:
+			pos = ast.NoteOver
 		}
 
+		parts := strings.Split(partStr, ",")
+		var noteParticipants []string
+		for _, p := range parts {
+			pClean := strings.TrimSpace(p)
+			if pClean != "" {
+				ensureParticipant(pClean, "", ast.SourceRef{Line: lineIdx + 1})
+				noteParticipants = append(noteParticipants, pClean)
+			}
+		}
+
+		diag.Notes = append(diag.Notes, &ast.SequenceNote{
+			Participants: noteParticipants,
+			Position:     pos,
+			Text:         text,
+			Source:       ast.SourceRef{Line: lineIdx + 1},
+		})
+		continue
+	}
 		// Structural grouping keywords — loop, par, alt, else, end, opt, critical, break, rect.
 		// These are valid Mermaid syntax but grouping boxes are not yet rendered.
 		// We skip them gracefully rather than aborting the parse.

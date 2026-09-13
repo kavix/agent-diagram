@@ -15,3 +15,8 @@ type Diagram interface {
 	Type() DiagramType
 	Title() string
 }
+// SourceRef represents a reference to a source code file and line.
+type SourceRef struct {
+	File string `json:"file,omitempty"`
+	Line int    `json:"line,omitempty"`
+}

@@ -23,9 +23,10 @@ const (
 
 // Participant represents an actor or system component in the sequence.
 type Participant struct {
-	ID    string
-	Label string
-	Order int
+	ID     string
+	Label  string
+	Order  int
+	Source SourceRef
 }
 
 // SequenceEvent represents a message exchange or interaction between participants.
@@ -35,6 +36,7 @@ type SequenceEvent struct {
 	To      string
 	Message string
 	Arrow   ArrowType
+	Source  SourceRef
 }
 
 // SequenceNote represents an explanatory note attached to one or more participants.
@@ -42,6 +44,7 @@ type SequenceNote struct {
 	Participants []string
 	Position     NotePosition
 	Text         string
+	Source       SourceRef
 }
 
 // SequenceDiagram models a parsed Mermaid sequence diagram.
