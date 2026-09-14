@@ -105,6 +105,60 @@ Sequence Diagram (Compact)
 
 ---
 
+## AgentUML: Diagrams for AI Agentic Workflows
+
+AI agents are not microservices. They loop non-deterministically, grow their context window with every observation, and can delegate to hierarchies of sub-agents. `agent-diagram` supports **AgentUML** — a stereotype-annotated extension of Mermaid sequence syntax that makes these dynamics visible.
+
+### Supported AgentUML Stereotypes
+
+Append `<<stereotype>>` to any participant name:
+
+| Stereotype | Role |
+| :--- | :--- |
+| `<<orchestrator>>` | Central routing LLM; decomposes & delegates tasks |
+| `<<agent>>` | Autonomous ReAct loop with tool-calling |
+| `<<llm>>` | Stateless model inference endpoint |
+| `<<tool>>` / `<<action>>` | Deterministic external API |
+| `<<memory_working>>` | Short-term context window (token-bounded) |
+| `<<memory_semantic>>` | Long-term RAG vector store |
+| `<<guardrail>>` | Policy enforcement gate |
+
+### Example: Orchestrator-Worker Pattern ⚠ High Context-Window Risk
+
+```bash
+agent-diagram render examples/agent_orchestrator_worker.mmd
+```
+
+```text
+Sequence Diagram — Orchestrator-Worker (AgentUML)
+────────────────────────────────────────────────────────────────────────────────
+  ┌──────┐    ┌──────────┐    ┌─────────┐    ┌──────┐    ┌──────┐    ┌──────┐
+  │ User │    │Guardrail │    │Orchestr.│    │  W1  │    │  W2  │    │  W3  │
+  └──┬───┘    └────┬─────┘    └────┬────┘    └──┬───┘    └──┬───┘    └──┬───┘
+     │              │               │             │            │            │
+     │─────────────►│ 1. Send prompt│             │            │            │
+     │              │──────────────►│ 2. Approve  │            │            │
+     │              │               │────────────►│ 7a. Task   │            │
+     │              │               │─────────────┼───────────►│ 7b. Task   │
+     │              │               │◄────────────│ 8a. Result⚠│            │
+     │              │               │◄────────────┼────────────│ 8b. Result⚠│
+     │              │               │─────────────────────────►│ 7c. Task   │
+  ◈ Note [Orchestr.,Mem]: ⚠ HIGH OVERFLOW RISK: context grows with each worker
+     │◄─────────────┼───────────────│ 12. Response│            │            │
+```
+
+### Context-Window Overflow Risk by Pattern
+
+| Pattern | Risk | Example |
+| :--- | :--- | :--- |
+| Orchestrator-Worker | 🔴 **HIGH** | `examples/agent_orchestrator_worker.mmd` |
+| Hierarchical | 🟡 **MEDIUM** | `examples/agent_hierarchical.mmd` |
+| ReAct / Generator-Critic | 🟢 **LOW** | `examples/agent_react_loop.mmd`, `examples/agent_generator_critic.mmd` |
+
+See [`docs/AGENT_UML_SPEC.md`](docs/AGENT_UML_SPEC.md) for the full AgentUML specification, including probabilistic branch notation, guardrail boundaries, and production anti-patterns.
+
+---
+
 ## Installation
 
 ### From Source
@@ -274,6 +328,7 @@ We have active roadmap issues ready for OSS contributors:
 | [#11](https://github.com/kavix/agent-diagram/issues/11) | **Entity-Relationship & Class Diagrams** (`erDiagram`, `classDiagram`) | `diagram-type` |
 | [#12](https://github.com/kavix/agent-diagram/issues/12) | **Code Intelligence Linkage** (Jump from Diagram Node to `file:line`) | `core-architecture` |
 | [#13](https://github.com/kavix/agent-diagram/issues/13) | **Packaging & Distribution** (Homebrew Formula & GoReleaser) | `good first issue` |
+| [#14](https://github.com/kavix/agent-diagram/issues/14) | **AgentUML Native Stereotype Parsing** (`<<agent>>`, `<<guardrail>>`, probabilistic arrows) | `agentic`, `enhancement` |
 
 ---
 

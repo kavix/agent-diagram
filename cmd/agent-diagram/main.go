@@ -54,6 +54,7 @@ func runRender(args []string) {
 	modeFlag := renderFlags.String("mode", "auto", "Layout mode: auto, full, compact, narrow")
 	noColorFlag := renderFlags.Bool("no-color", false, "Disable ANSI color output")
 	asciiFlag := renderFlags.Bool("ascii", false, "Use ASCII box drawing instead of Unicode")
+	toonFlag := renderFlags.Bool("toon", false, "Use thick double-line TOON box style (╔═╗ / ┏━┓)")
 
 	// Separate flags from positional arguments so flag order doesn't matter
 	var flagArgs []string
@@ -120,6 +121,7 @@ func runRender(args []string) {
 		Mode:      layout.RenderMode(*modeFlag),
 		NoColor:   noColor,
 		ASCIIOnly: *asciiFlag,
+		ToonStyle: *toonFlag,
 	})
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Render Error: %v\n", err)
@@ -174,10 +176,15 @@ func runInstallPlugin(args []string) {
 	mcpConfig := fmt.Sprintf(`{"mcpServers":{"agent-diagram":{"command":%q,"args":["mcp"]}}}`+"\n", execPath)
 	_ = os.WriteFile(filepath.Join(targetDir, "mcp_config.json"), []byte(mcpConfig), 0644)
 
-	// Write rules/AGENTS.md
+	// Write rules/AGENTS.md — terse form saves tokens on every system-prompt injection.
+	// Full guide: docs/LLM_EFFICIENCY.md
 	ruleDoc := `# Agent Diagram Integration Rules
 
-Whenever explaining architecture, distributed calls, Kubernetes reconcilers, or workflows, always call the render_diagram tool with valid Mermaid syntax (sequenceDiagram or flowchart TD/LR).
+For architecture/flow explanations: call render_diagram with Mermaid syntax.
+- Use response=summary (default, ~10 tokens returned to LLM).
+- Use validate_diagram first for complex diagrams to catch errors before render.
+- Keep participant count ≤6 per diagram; use short IDs with "as" aliases.
+- On validation error: self-correct in same turn using the returned Fix hint.
 `
 	_ = os.WriteFile(filepath.Join(targetDir, "rules", "AGENTS.md"), []byte(ruleDoc), 0644)
 

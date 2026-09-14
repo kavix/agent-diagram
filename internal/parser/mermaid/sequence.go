@@ -150,9 +150,32 @@ func ParseSequence(lines []string) (*ast.SequenceDiagram, error) {
 			continue
 		}
 
-		// If unknown line in sequence diagram, we warn or return error
+		// Structural grouping keywords — loop, par, alt, else, end, opt, critical, break, rect.
+		// These are valid Mermaid syntax but grouping boxes are not yet rendered.
+		// We skip them gracefully rather than aborting the parse.
+		lower := strings.ToLower(line)
+		if isStructuralKeyword(lower) {
+			continue
+		}
+
+		// If unknown line in sequence diagram, return error
 		return nil, fmt.Errorf("line %d: unrecognized sequence diagram statement: %q", lineIdx+1, line)
 	}
 
 	return diag, nil
+}
+
+// isStructuralKeyword returns true for Mermaid grouping/control-flow keywords
+// that are syntactically valid but not yet rendered by agent-diagram.
+func isStructuralKeyword(lower string) bool {
+	keywords := []string{
+		"loop", "par", "alt", "else", "end", "opt",
+		"critical", "break", "rect", "and", "activate", "deactivate",
+	}
+	for _, kw := range keywords {
+		if strings.HasPrefix(lower, kw+" ") || lower == kw {
+			return true
+		}
+	}
+	return false
 }

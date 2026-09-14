@@ -1,0 +1,41 @@
+sequenceDiagram
+    %% AgentUML: Hierarchical Task Decomposition
+    %% Pattern: Manager → Supervisors → Leaf Execution Agents (tree structure)
+    %% Context-Window Risk: MEDIUM — context is partitioned across levels,
+    %% but each manager still accumulates summaries from all its children.
+    %% Preferred for highly ambiguous tasks to prevent single-context overflow.
+
+    participant U as User
+    participant M as Manager Agent <<orchestrator>>
+    participant S1 as Research Supervisor <<agent>>
+    participant S2 as Code Supervisor <<agent>>
+    participant L1 as Web Scraper <<tool>>
+    participant L2 as Paper Fetcher <<tool>>
+    participant L3 as Test Runner <<tool>>
+    participant L4 as Linter <<tool>>
+    participant G as Output Guardrail <<guardrail>>
+
+    U->>M: 1. Ambiguous high-level goal
+
+    M->>S1: 2. Delegate: Research subtask
+    M->>S2: 3. Delegate: Code subtask
+
+    Note over S1: S1 manages its own context window<br/>(partitioned from S2)
+
+    S1->>L1: 4a. Execute web scraper
+    S1->>L2: 4b. Fetch academic papers
+    L1-->>S1: 5a. Results
+    L2-->>S1: 5b. Results
+    S1-->>M: 6. Research summary (compressed)
+
+    Note over S2: S2 manages its own context window<br/>(partitioned from S1)
+
+    S2->>L3: 7a. Run test suite
+    S2->>L4: 7b. Run linter
+    L3-->>S2: 8a. Test results
+    L4-->>S2: 8b. Lint report
+    S2-->>M: 9. Code quality summary (compressed)
+
+    M->>G: 10. Validate combined output
+    G-->>M: 11. Approved [policy pass]
+    M-->>U: 12. Synthesised final answer

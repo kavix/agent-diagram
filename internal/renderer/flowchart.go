@@ -19,10 +19,7 @@ func RenderFlowchart(diag *ast.FlowchartDiagram, opts RenderOptions) (string, er
 }
 
 func renderFlowchartFull(diag *ast.FlowchartDiagram, lay *layout.FlowchartLayout, opts RenderOptions) string {
-	box := UnicodeBox
-	if opts.ASCIIOnly {
-		box = ASCIIBox
-	}
+	box := opts.BoxStyle()
 	useColor := !opts.NoColor
 
 	var b strings.Builder
@@ -158,10 +155,7 @@ func renderFlowchartFull(diag *ast.FlowchartDiagram, lay *layout.FlowchartLayout
 }
 
 func renderFlowchartCompact(diag *ast.FlowchartDiagram, lay *layout.FlowchartLayout, opts RenderOptions) string {
-	box := UnicodeBox
-	if opts.ASCIIOnly {
-		box = ASCIIBox
-	}
+	box := opts.BoxStyle()
 	useColor := !opts.NoColor
 
 	var b strings.Builder

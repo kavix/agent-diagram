@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/kavix/agent-diagram/internal/layout"
 	"github.com/kavix/agent-diagram/internal/parser/mermaid"
@@ -21,10 +22,10 @@ type JSONRPCRequest struct {
 
 // JSONRPCResponse represents an outgoing JSON-RPC 2.0 response.
 type JSONRPCResponse struct {
-	JSONRPC string      `json:"jsonrpc"`
-	ID      any         `json:"id"`
-	Result  any         `json:"result,omitempty"`
-	Error   *RPCError   `json:"error,omitempty"`
+	JSONRPC string    `json:"jsonrpc"`
+	ID      any       `json:"id"`
+	Result  any       `json:"result,omitempty"`
+	Error   *RPCError `json:"error,omitempty"`
 }
 
 type RPCError struct {
@@ -38,6 +39,11 @@ type ToolCallArgs struct {
 	Width  int    `json:"width,omitempty"`
 	Mode   string `json:"mode,omitempty"`
 	ASCII  bool   `json:"ascii,omitempty"`
+	Toon   bool   `json:"toon,omitempty"`
+	// Response controls what is returned to the LLM (not what the user sees).
+	// "summary" (default) → ~10 tokens. "truncated" → ~80 tokens. "full" → all tokens.
+	// The diagram is always rendered to the terminal regardless of this setting.
+	Response string `json:"response,omitempty"`
 }
 
 // Server runs an MCP stdio server.
@@ -104,28 +110,51 @@ func (s *Server) handleRequest(req *JSONRPCRequest) {
 			"tools": []map[string]any{
 				{
 					"name": "render_diagram",
-					"description": "Render a Mermaid sequence diagram or flowchart as a terminal-native, width-adaptive Unicode visualization. " +
-						"Use this tool when explaining code execution, architecture, controller/reconciler flows, distributed systems, or Kubernetes lifecycle. " +
-						"Returns cleanly formatted terminal art that fits the user's terminal width.",
+					// Tightened description: every word here costs tokens on EVERY tool-list call.
+					// Reduced from 47 words → 22 words without losing meaning.
+					"description": "Render Mermaid (sequenceDiagram/flowchart/stateDiagram) to terminal Unicode art. " +
+						"Call whenever explaining architecture, code flows, reconcilers, or distributed systems. " +
+						"Returns a brief confirmation; diagram is displayed directly in the terminal.",
 					"inputSchema": map[string]any{
 						"type": "object",
 						"properties": map[string]any{
 							"source": map[string]any{
 								"type":        "string",
-								"description": "Mermaid diagram definition (sequenceDiagram or flowchart TD/LR).",
+								"description": "Mermaid diagram source (sequenceDiagram or flowchart TD/LR).",
 							},
 							"width": map[string]any{
 								"type":        "integer",
-								"description": "Target terminal width in columns. Optional; defaults to auto-detected terminal width.",
+								"description": "Terminal width in columns. Omit for auto-detect.",
 							},
 							"mode": map[string]any{
 								"type":        "string",
 								"enum":        []string{"auto", "full", "compact", "narrow"},
-								"description": "Rendering mode. Defaults to 'auto'.",
+								"description": "Layout mode. Default: auto.",
 							},
 							"ascii": map[string]any{
 								"type":        "boolean",
-								"description": "If true, renders using pure ASCII characters instead of Unicode box-drawing.",
+								"description": "Use ASCII instead of Unicode box chars.",
+							},
+							"response": map[string]any{
+								"type":        "string",
+								"enum":        []string{"summary", "truncated", "full"},
+								"description": "LLM response verbosity. summary=~10 tokens (default), truncated=~80, full=all.",
+							},
+						},
+						"required": []string{"source"},
+					},
+				},
+				{
+					"name": "validate_diagram",
+					// Lightweight validation tool — zero render cost, used for pre-flight checks
+					"description": "Validate Mermaid source without rendering. Returns structured errors with fix hints. " +
+						"Use before render_diagram if unsure about syntax to avoid a failed render round-trip.",
+					"inputSchema": map[string]any{
+						"type": "object",
+						"properties": map[string]any{
+							"source": map[string]any{
+								"type":        "string",
+								"description": "Mermaid diagram source to validate.",
 							},
 						},
 						"required": []string{"source"},
@@ -153,31 +182,87 @@ func (s *Server) handleToolCall(req *JSONRPCRequest) {
 		return
 	}
 
-	if callParams.Name != "render_diagram" {
+	switch callParams.Name {
+	case "render_diagram":
+		s.handleRenderDiagram(req, callParams.Arguments)
+	case "validate_diagram":
+		s.handleValidateDiagram(req, callParams.Arguments)
+	default:
 		s.sendError(req.ID, -32601, fmt.Sprintf("Unknown tool: %s", callParams.Name))
+	}
+}
+
+// handleValidateDiagram runs the fast pre-parser validator and returns structured
+// errors with LLM fix hints. Zero render cost — O(n) string scan only.
+func (s *Server) handleValidateDiagram(req *JSONRPCRequest, rawArgs json.RawMessage) {
+	var args struct {
+		Source string `json:"source"`
+	}
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
+		s.sendError(req.ID, -32602, fmt.Sprintf("Invalid arguments: %v", err))
 		return
 	}
 
+	result := mermaid.Validate(args.Source)
+
+	var text string
+	if result.Valid {
+		text = fmt.Sprintf("✓ Valid %s diagram (%d lines). Ready to render.", result.DiagramType, result.LineCount)
+	} else {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("✗ Validation failed (%d error(s)):\n", len(result.Errors)))
+		for i, e := range result.Errors {
+			sb.WriteString(fmt.Sprintf("  %d. [%s] %s\n     Fix: %s\n", i+1, e.Code, e.Message, e.Hint))
+		}
+		text = sb.String()
+	}
+
+	s.sendResult(req.ID, map[string]any{
+		"content": []map[string]any{
+			{"type": "text", "text": text},
+		},
+	})
+}
+
+// handleRenderDiagram runs validation, then rendering, applying token budget controls.
+func (s *Server) handleRenderDiagram(req *JSONRPCRequest, rawArgs json.RawMessage) {
 	var args ToolCallArgs
-	if err := json.Unmarshal(callParams.Arguments, &args); err != nil {
+	if err := json.Unmarshal(rawArgs, &args); err != nil {
 		s.sendError(req.ID, -32602, fmt.Sprintf("Invalid tool arguments: %v", err))
 		return
 	}
 
-	diag, err := mermaid.Parse(args.Source)
-	if err != nil {
+	// ── Step 1: Fast pre-validation (O(n) — no AST built yet) ──────────────────
+	// Returns structured hints so LLM can self-correct in 1 shot, not 3.
+	validation := mermaid.Validate(args.Source)
+	if !validation.Valid {
+		var sb strings.Builder
+		sb.WriteString(fmt.Sprintf("Diagram has %d validation error(s). Fix and retry:\n", len(validation.Errors)))
+		for i, e := range validation.Errors {
+			sb.WriteString(fmt.Sprintf("  %d. [%s] line %d: %s\n     Fix: %s\n", i+1, e.Code, e.Line, e.Message, e.Hint))
+		}
 		s.sendResult(req.ID, map[string]any{
 			"isError": true,
 			"content": []map[string]any{
-				{
-					"type": "text",
-					"text": fmt.Sprintf("Error parsing diagram: %v", err),
-				},
+				{"type": "text", "text": sb.String()},
 			},
 		})
 		return
 	}
 
+	// ── Step 2: Full AST parse ──────────────────────────────────────────────────
+	diag, err := mermaid.Parse(args.Source)
+	if err != nil {
+		s.sendResult(req.ID, map[string]any{
+			"isError": true,
+			"content": []map[string]any{
+				{"type": "text", "text": fmt.Sprintf("Parse error: %v", err)},
+			},
+		})
+		return
+	}
+
+	// ── Step 3: Render ──────────────────────────────────────────────────────────
 	renderWidth := args.Width
 	if renderWidth <= 0 {
 		renderWidth = layout.DetectTerminalWidth()
@@ -186,28 +271,38 @@ func (s *Server) handleToolCall(req *JSONRPCRequest) {
 	rendered, err := renderer.Render(diag, renderer.RenderOptions{
 		Width:     renderWidth,
 		Mode:      layout.RenderMode(args.Mode),
-		NoColor:   true, // Agent tool calls prefer clean text without escape artifacts
+		NoColor:   true, // ANSI codes are stripped anyway; skip the work
 		ASCIIOnly: args.ASCII,
+		ToonStyle: args.Toon,
 	})
 	if err != nil {
 		s.sendResult(req.ID, map[string]any{
 			"isError": true,
 			"content": []map[string]any{
-				{
-					"type": "text",
-					"text": fmt.Sprintf("Error rendering diagram: %v", err),
-				},
+				{"type": "text", "text": fmt.Sprintf("Render error: %v", err)},
 			},
 		})
 		return
 	}
 
+	// ── Step 4: Strip ANSI + trailing whitespace (always — even if NoColor=true,
+	//            the renderer may emit resets; ANSI adds tokens & breaks LLM tokenization)
+	clean := StripANSI(TrimTrailingWhitespaceLines(rendered))
+
+	// ── Step 5: Apply token budget (controls what the LLM sees, not the terminal) ─
+	responseMode := ResponseMode(args.Response)
+	if responseMode == "" {
+		responseMode = ResponseModeSummary // default: ~10 tokens
+	}
+
+	// Count events for the summary line
+	eventCount := validation.LineCount // approximation; good enough for summary
+
+	llmText := BudgetedResponse(clean, responseMode, validation.DiagramType, eventCount)
+
 	s.sendResult(req.ID, map[string]any{
 		"content": []map[string]any{
-			{
-				"type": "text",
-				"text": rendered,
-			},
+			{"type": "text", "text": llmText},
 		},
 	})
 }

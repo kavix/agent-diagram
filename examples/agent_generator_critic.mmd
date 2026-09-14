@@ -1,0 +1,36 @@
+sequenceDiagram
+    %% AgentUML: Generator-Critic (Reflection) Pattern
+    %% Pattern: Generator produces output → Critic evaluates → Revision loop if failed
+    %% Context-Window Risk: LOW — bounded critique loops with clear termination criteria
+    %% Best for: Code generation, content writing, architectural review, test coverage
+
+    participant U as User
+    participant Gen as Generator Agent <<agent>>
+    participant Crit as Critic Agent <<agent>>
+    participant M as Working Memory <<memory_working>>
+    participant LLM as Gemini LLM <<llm>>
+    participant G as Output Guardrail <<guardrail>>
+
+    U->>Gen: 1. Task: generate code / content
+
+    Gen->>LLM: 2. Generate initial draft
+    LLM-->>Gen: 3. Draft output
+
+    loop Revision Loop (max 3 iterations)
+        Gen->>Crit: 4. Submit draft for evaluation
+
+        Note over Crit: Critic evaluates against rubric:<br/>• Correctness<br/>• Completeness<br/>• Safety constraints
+
+        alt Passes rubric threshold
+            Crit-->>Gen: 5a. PASS — quality score ≥ 0.85
+        else Fails rubric threshold
+            Crit-->>Gen: 5b. FAIL — quality score < 0.85 + diff feedback
+            Gen->>M: 6. Append critique to scratchpad
+            Gen->>LLM: 7. Revise with critic feedback
+            LLM-->>Gen: 8. Revised draft
+        end
+    end
+
+    Gen->>G: 9. Safety / policy check
+    G-->>Gen: 10. Approved [no policy violation]
+    Gen-->>U: 11. Final approved output

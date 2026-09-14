@@ -13,6 +13,18 @@ type RenderOptions struct {
 	Mode      layout.RenderMode
 	NoColor   bool
 	ASCIIOnly bool
+	ToonStyle bool // Use thick double-line TOON box style
+}
+
+// BoxStyle returns the correct BoxChars set for these options.
+func (o RenderOptions) BoxStyle() BoxChars {
+	if o.ASCIIOnly {
+		return ASCIIBox
+	}
+	if o.ToonStyle {
+		return ToonBox
+	}
+	return UnicodeBox
 }
 
 // Render accepts an AST diagram and options and returns a formatted terminal diagram string.

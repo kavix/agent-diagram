@@ -18,45 +18,92 @@ type BoxChars struct {
 	ArrowDown   string
 	ArrowUp     string
 	DottedHoriz string
+	// Note box corners (may differ from regular box corners)
+	NoteTopLeft     string
+	NoteTopRight    string
+	NoteBottomLeft  string
+	NoteBottomRight string
+	NoteHorizontal  string
+	NoteVertical    string
 }
 
 var (
 	UnicodeBox = BoxChars{
-		TopLeft:     "┌",
-		TopRight:    "┐",
-		BottomLeft:  "└",
-		BottomRight: "┘",
-		Horizontal:  "─",
-		Vertical:    "│",
-		TeeDown:     "┬",
-		TeeUp:       "┴",
-		TeeRight:    "├",
-		TeeLeft:     "┤",
-		Cross:       "┼",
-		ArrowRight:  "►",
-		ArrowLeft:   "◄",
-		ArrowDown:   "▼",
-		ArrowUp:     "▲",
-		DottedHoriz: "┄",
+		TopLeft:         "┌",
+		TopRight:        "┐",
+		BottomLeft:      "└",
+		BottomRight:     "┘",
+		Horizontal:      "─",
+		Vertical:        "│",
+		TeeDown:         "┬",
+		TeeUp:           "┴",
+		TeeRight:        "├",
+		TeeLeft:         "┤",
+		Cross:           "┼",
+		ArrowRight:      "►",
+		ArrowLeft:       "◄",
+		ArrowDown:       "▼",
+		ArrowUp:         "▲",
+		DottedHoriz:     "┄",
+		NoteTopLeft:     "╭",
+		NoteTopRight:    "╮",
+		NoteBottomLeft:  "╰",
+		NoteBottomRight: "╯",
+		NoteHorizontal:  "─",
+		NoteVertical:    "│",
 	}
 
 	ASCIIBox = BoxChars{
-		TopLeft:     "+",
-		TopRight:    "+",
-		BottomLeft:  "+",
-		BottomRight: "+",
-		Horizontal:  "-",
-		Vertical:    "|",
-		TeeDown:     "+",
-		TeeUp:       "+",
-		TeeRight:    "+",
-		TeeLeft:     "+",
-		Cross:       "+",
-		ArrowRight:  ">",
-		ArrowLeft:   "<",
-		ArrowDown:   "v",
-		ArrowUp:     "^",
-		DottedHoriz: "-",
+		TopLeft:         "+",
+		TopRight:        "+",
+		BottomLeft:      "+",
+		BottomRight:     "+",
+		Horizontal:      "-",
+		Vertical:        "|",
+		TeeDown:         "+",
+		TeeUp:           "+",
+		TeeRight:        "+",
+		TeeLeft:         "+",
+		Cross:           "+",
+		ArrowRight:      ">",
+		ArrowLeft:       "<",
+		ArrowDown:       "v",
+		ArrowUp:         "^",
+		DottedHoriz:     "-",
+		NoteTopLeft:     "+",
+		NoteTopRight:    "+",
+		NoteBottomLeft:  "+",
+		NoteBottomRight: "+",
+		NoteHorizontal:  "-",
+		NoteVertical:    "|",
+	}
+
+	// ToonBox renders with thick double-line borders and bold arrows —
+	// a "cartoon" style that stands out clearly on dark and light terminals.
+	// Participant boxes use ╔═╗ double-lines; notes use ┏━┓ heavy lines.
+	ToonBox = BoxChars{
+		TopLeft:         "╔",
+		TopRight:        "╗",
+		BottomLeft:      "╚",
+		BottomRight:     "╝",
+		Horizontal:      "═",
+		Vertical:        "║",
+		TeeDown:         "╦",
+		TeeUp:           "╩",
+		TeeRight:        "╠",
+		TeeLeft:         "╣",
+		Cross:           "╬",
+		ArrowRight:      "▶",
+		ArrowLeft:       "◀",
+		ArrowDown:       "▼",
+		ArrowUp:         "▲",
+		DottedHoriz:     "╌",
+		NoteTopLeft:     "┏",
+		NoteTopRight:    "┓",
+		NoteBottomLeft:  "┗",
+		NoteBottomRight: "┛",
+		NoteHorizontal:  "━",
+		NoteVertical:    "┃",
 	}
 )
 
@@ -71,6 +118,7 @@ const (
 	ColorYellow  = "\033[33m"
 	ColorMagenta = "\033[35m"
 	ColorGray    = "\033[90m"
+	ColorRed     = "\033[31m"
 )
 
 // Style applies ANSI styling if enabled.

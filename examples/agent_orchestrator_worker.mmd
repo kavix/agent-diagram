@@ -1,0 +1,43 @@
+sequenceDiagram
+    %% AgentUML: Orchestrator-Worker Pattern
+    %% Pattern: Central LLM routes subtasks to specialised workers, then synthesises
+    %% Context-Window Risk: HIGH — orchestrator accumulates ALL worker outputs
+    %% before replying. With N workers, prompt grows linearly → overflow risk.
+
+    participant U as User
+    participant G as Input Guardrail <<guardrail>>
+    participant O as Orchestrator <<orchestrator>>
+    participant M as Working Memory <<memory_working>>
+    participant VS as Vector Store <<memory_semantic>>
+    participant W1 as Web Search Worker <<agent>>
+    participant W2 as Code Analyst Worker <<agent>>
+    participant W3 as SQL Query Worker <<agent>>
+    participant LLM as Gemini LLM <<llm>>
+
+    U->>G: 1. Send prompt
+    G-->>O: 2. Approve (policy pass) [deterministic guardrail]
+
+    O->>M: 3. Load conversation history
+    O->>VS: 4. Retrieve semantic context (RAG)
+    VS-->>O: 5. Return top-k documents
+
+    O->>LLM: 6. Decompose task → subtask plan
+
+    %% Parallel fan-out to workers
+    par Worker Fan-Out [non-deterministic latency]
+        O->>W1: 7a. Web search subtask
+        O->>W2: 7b. Code analysis subtask
+        O->>W3: 7c. SQL query subtask
+    end
+
+    W1-->>O: 8a. Observation (appended to context ⚠️)
+    W2-->>O: 8b. Observation (appended to context ⚠️)
+    W3-->>O: 8c. Observation (appended to context ⚠️)
+
+    Note over O,M: ⚠ HIGH OVERFLOW RISK: orchestrator context window<br/>grows with each worker response. Monitor token budget.
+
+    O->>M: 9. Append all observations
+    O->>LLM: 10. Synthesise final answer from full context
+    LLM-->>O: 11. Final synthesis
+
+    O-->>U: 12. Deliver response

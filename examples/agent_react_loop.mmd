@@ -1,0 +1,25 @@
+sequenceDiagram
+    %% AgentUML: Single-Agent ReAct Loop
+    %% Pattern: Observe → Reason → Act → Observe (loop until goal met)
+    %% Context-Window Risk: LOW — single context window, bounded observations
+
+    participant U as User
+    participant A as ReAct Agent <<agent>>
+    participant M as Working Memory <<memory_working>>
+    participant W as Web Search <<tool>>
+    participant LLM as Gemini LLM <<llm>>
+
+    U->>A: 1. Submit goal
+    A->>M: 2. Load scratchpad
+    A->>LLM: 3. Reason: what tool to call?
+
+    loop Observation Loop (until goal satisfied)
+        LLM-->>A: 4. Select action + args
+        A->>W: 5. Execute tool [deterministic]
+        W-->>A: 6. Return observation
+        A->>M: 7. Append observation to context
+        A->>LLM: 8. Re-reason with updated context
+    end
+
+    LLM-->>A: 9. Goal met — generate final answer
+    A-->>U: 10. Final Response
