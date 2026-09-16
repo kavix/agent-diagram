@@ -34,11 +34,18 @@ const (
 
 // FlowNode represents a vertex or step in the flowchart.
 type FlowNode struct {
-	ID     string
-	Text   string
-	Shape  NodeShape
-	Order  int
-	Source SourceRef
+	ID     string    `json:"id"`
+	Text   string    `json:"text"`
+	Shape  NodeShape `json:"shape"`
+	Order  int       `json:"order"`
+	Source SourceRef `json:"source,omitempty"`
+}
+
+func (n *FlowNode) GetSource() SourceRef {
+	if n == nil {
+		return SourceRef{}
+	}
+	return n.Source
 }
 
 // FlowEdge represents a directed or undirected connection between two nodes.
