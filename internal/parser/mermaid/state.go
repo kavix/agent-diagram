@@ -29,13 +29,14 @@ func ParseState(lines []string) (*ast.StateDiagram, error) {
 
 	stateMap := make(map[string]*ast.StateNode)
 
-	ensureState := func(id, label string, sType ast.StateType) *ast.StateNode {
+	ensureState := func(id, label string, sType ast.StateType, src ast.SourceRef) *ast.StateNode {
 		if id == "[*]" {
 			// Virtual start or end
 			return &ast.StateNode{
-				ID:    id,
-				Label: "[*]",
-				Type:  sType,
+				ID:     id,
+				Label:  "[*]",
+				Type:   sType,
+				Source: src,
 			}
 		}
 		if s, exists := stateMap[id]; exists {
@@ -51,10 +52,11 @@ func ParseState(lines []string) (*ast.StateDiagram, error) {
 			sType = ast.StateNormal
 		}
 		s := &ast.StateNode{
-			ID:    id,
-			Label: label,
-			Type:  sType,
-			Order: len(diag.StateOrder),
+			ID:     id,
+			Label:  label,
+			Type:   sType,
+			Order:  len(diag.StateOrder),
+			Source: src,
 		}
 		stateMap[id] = s
 		diag.StateOrder = append(diag.StateOrder, id)
@@ -82,7 +84,7 @@ func ParseState(lines []string) (*ast.StateDiagram, error) {
 		if m := stateAliasRegex.FindStringSubmatch(line); len(m) == 3 {
 			label := m[1]
 			id := m[2]
-			ensureState(id, label, ast.StateNormal)
+			ensureState(id, label, ast.StateNormal, ast.SourceRef{Line: lineIdx + 1})
 			continue
 		}
 
@@ -104,8 +106,8 @@ func ParseState(lines []string) (*ast.StateDiagram, error) {
 				toType = ast.StateEnd
 			}
 
-			ensureState(from, "", fromType)
-			ensureState(to, "", toType)
+			ensureState(from, "", fromType, ast.SourceRef{Line: lineIdx + 1})
+			ensureState(to, "", toType, ast.SourceRef{Line: lineIdx + 1})
 
 			diag.Transitions = append(diag.Transitions, &ast.StateTransition{
 				From:    from,
@@ -119,7 +121,7 @@ func ParseState(lines []string) (*ast.StateDiagram, error) {
 		if m := stateDescRegex.FindStringSubmatch(line); len(m) == 3 {
 			id := m[1]
 			desc := strings.TrimSpace(m[2])
-			s := ensureState(id, "", ast.StateNormal)
+			s := ensureState(id, "", ast.StateNormal, ast.SourceRef{Line: lineIdx + 1})
 			s.Description = desc
 			continue
 		}

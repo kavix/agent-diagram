@@ -88,12 +88,18 @@ const (
 
 // AgentNode represents a component in an agentic workflow diagram.
 type AgentNode struct {
-	ID         string
-	Label      string
-	Stereotype AgentStereotype
-	// ContextBudget is the approximate token budget for this node's working memory.
-	// 0 means unspecified / not modelled.
-	ContextBudget int
+	ID            string          `json:"id"`
+	Label         string          `json:"label"`
+	Stereotype    AgentStereotype `json:"stereotype"`
+	ContextBudget int             `json:"context_budget"`
+	Source        SourceRef       `json:"source,omitempty"`
+}
+
+func (n *AgentNode) GetSource() SourceRef {
+	if n == nil {
+		return SourceRef{}
+	}
+	return n.Source
 }
 
 // AgentMessage represents an interaction between two agents or components.

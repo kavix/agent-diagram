@@ -23,25 +23,49 @@ const (
 
 // Participant represents an actor or system component in the sequence.
 type Participant struct {
-	ID    string
-	Label string
-	Order int
+	ID     string    `json:"id"`
+	Label  string    `json:"label"`
+	Order  int       `json:"order"`
+	Source SourceRef `json:"source,omitempty"`
+}
+
+func (p *Participant) GetSource() SourceRef {
+	if p == nil {
+		return SourceRef{}
+	}
+	return p.Source
 }
 
 // SequenceEvent represents a message exchange or interaction between participants.
 type SequenceEvent struct {
-	Number  int
-	From    string
-	To      string
-	Message string
-	Arrow   ArrowType
+	Number  int       `json:"number,omitempty"`
+	From    string    `json:"from"`
+	To      string    `json:"to"`
+	Message string    `json:"message"`
+	Arrow   ArrowType `json:"arrow"`
+	Source  SourceRef `json:"source,omitempty"`
+}
+
+func (e *SequenceEvent) GetSource() SourceRef {
+	if e == nil {
+		return SourceRef{}
+	}
+	return e.Source
 }
 
 // SequenceNote represents an explanatory note attached to one or more participants.
 type SequenceNote struct {
-	Participants []string
-	Position     NotePosition
-	Text         string
+	Participants []string     `json:"participants"`
+	Position     NotePosition `json:"position"`
+	Text         string       `json:"text"`
+	Source       SourceRef    `json:"source,omitempty"`
+}
+
+func (n *SequenceNote) GetSource() SourceRef {
+	if n == nil {
+		return SourceRef{}
+	}
+	return n.Source
 }
 
 // SequenceDiagram models a parsed Mermaid sequence diagram.

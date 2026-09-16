@@ -59,22 +59,30 @@ func ParseFlowchart(lines []string) (*ast.FlowchartDiagram, error) {
 			continue
 		}
 
-		// Try parsing edges or nodes
-		if err := parseFlowchartStatement(line, diag, currentSubgraph); err != nil {
+		if err := parseFlowchartStatement(line, diag, currentSubgraph, lineIdx); err != nil {
 			return nil, fmt.Errorf("line %d: %w", lineIdx+1, err)
 		}
 	}
 
+	fmt.Println("DEBUG NODES:", diag.NodeOrder)
 	return diag, nil
 }
 
-func ensureNode(diag *ast.FlowchartDiagram, id, text string, shape ast.NodeShape) *ast.FlowNode {
+func ensureNode(diag *ast.FlowchartDiagram, id, text string, shape ast.NodeShape, ref ast.SourceRef) *ast.FlowNode {
+	id = strings.TrimSpace(id)
+	if id == "" || strings.ToLower(id) == "end" {
+		return nil
+	}
+
 	if n, exists := diag.Nodes[id]; exists {
 		if text != "" && (n.Text == id || n.Text == "") {
 			n.Text = text
 		}
 		if shape != ast.ShapeRect && n.Shape == ast.ShapeRect {
 			n.Shape = shape
+		}
+		if n.Source.Line == 0 {
+			n.Source = ref
 		}
 		return n
 	}
@@ -87,10 +95,11 @@ func ensureNode(diag *ast.FlowchartDiagram, id, text string, shape ast.NodeShape
 	}
 
 	n := &ast.FlowNode{
-		ID:    id,
-		Text:  text,
-		Shape: shape,
-		Order: len(diag.NodeOrder),
+		ID:     id,
+		Text:   text,
+		Shape:  shape,
+		Order:  len(diag.NodeOrder),
+		Source: ref,
 	}
 	diag.Nodes[id] = n
 	diag.NodeOrder = append(diag.NodeOrder, id)
@@ -153,19 +162,17 @@ func cleanNodeText(text string) string {
 	}
 	return text
 }
-
-// Regex to find edge operators (most specific patterns must come first)
-var edgeOpRegex = regexp.MustCompile(`(-->\|[^|\n]+\||---\|[^|\n]+\||--\s*[^-\n>]+\s*-->|-\.\s*[^.\n>]+\s*\.->|-->|==>|-\.->|---)`)
-
-func parseFlowchartStatement(line string, diag *ast.FlowchartDiagram, sg *ast.FlowSubgraph) error {
+func parseFlowchartStatement(line string, diag *ast.FlowchartDiagram, sg *ast.FlowSubgraph, lineIdx int) error {
+	var edgeOpRegex = regexp.MustCompile(`(-->|\[^[^\n]+\]+|\|---|\[^[^\n]+\]+|\|--\s*\[^-\n]+\]+\s*-->|-\|-\s*\[^-\n]+\]+)`)
 	matches := edgeOpRegex.FindAllStringIndex(line, -1)
+
 	if len(matches) == 0 {
 		// Single standalone node declaration like A[Label]
 		id, text, shape, ok := parseNodeToken(line)
 		if !ok || id == "" {
 			return fmt.Errorf("invalid flowchart token: %q", line)
 		}
-		ensureNode(diag, id, text, shape)
+		ensureNode(diag, id, text, shape, ast.SourceRef{Line: lineIdx + 1})
 		if sg != nil {
 			sg.NodeIDs = append(sg.NodeIDs, id)
 		}
@@ -187,21 +194,30 @@ func parseFlowchartStatement(line string, diag *ast.FlowchartDiagram, sg *ast.Fl
 	tokens = append(tokens, strings.TrimSpace(line[lastEnd:]))
 
 	for i := 0; i < len(edgeOps); i++ {
-		fromToken := tokens[i]
-		toToken := tokens[i+1]
+	fromToken := tokens[i]
+		toToken := strings.TrimSpace(tokens[i+1])
 		op := edgeOps[i]
+
+		// استخراج نص السهم مثل |Yes| وتصفية اسم العقدة
+		var extractedEdgeText string
+		if strings.HasPrefix(toToken, "|") {
+			parts := strings.SplitN(toToken[1:], "|", 2)
+			if len(parts) == 2 {
+				extractedEdgeText = strings.TrimSpace(parts[0])
+				toToken = strings.TrimSpace(parts[1])
+			}
+		}
 
 		fromID, fromText, fromShape, _ := parseNodeToken(fromToken)
 		toID, toText, toShape, _ := parseNodeToken(toToken)
-
 		if fromID != "" {
-			ensureNode(diag, fromID, fromText, fromShape)
+			ensureNode(diag, fromID, fromText, fromShape, ast.SourceRef{Line: lineIdx + 1})
 			if sg != nil {
 				sg.NodeIDs = append(sg.NodeIDs, fromID)
 			}
 		}
 		if toID != "" {
-			ensureNode(diag, toID, toText, toShape)
+			ensureNode(diag, toID, toText, toShape, ast.SourceRef{Line: lineIdx + 1})
 			if sg != nil {
 				sg.NodeIDs = append(sg.NodeIDs, toID)
 			}
@@ -228,14 +244,17 @@ func parseFlowchartStatement(line string, diag *ast.FlowchartDiagram, sg *ast.Fl
 		} else if op == "---" {
 			arrow = false
 		}
+if extractedEdgeText != "" {
+			edgeText = extractedEdgeText
+		}
 
-		diag.Edges = append(diag.Edges, astFlowedgeWrapper(fromID, toID, strings.TrimSpace(edgeText), edgeStyle, arrow))
+		diag.Edges = append(diag.Edges, astFlowEdgeWrapper(fromID, toID, strings.TrimSpace(edgeText), edgeStyle, arrow))
 	}
 
 	return nil
 }
 
-func astFlowedgeWrapper(from, to, text string, style ast.EdgeStyle, arrow bool) *ast.FlowEdge {
+func astFlowEdgeWrapper(from, to, text string, style ast.EdgeStyle, arrow bool) *ast.FlowEdge {
 	return &ast.FlowEdge{
 		From:  from,
 		To:    to,

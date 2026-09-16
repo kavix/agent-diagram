@@ -12,11 +12,19 @@ const (
 
 // StateNode represents a state machine state.
 type StateNode struct {
-	ID          string
-	Label       string
-	Description string
-	Type        StateType
-	Order       int
+	ID          string    `json:"id"`
+	Label       string    `json:"label"`
+	Description string    `json:"description"`
+	Type        StateType `json:"type"`
+	Order       int       `json:"order"`
+	Source      SourceRef `json:"source,omitempty"`
+}
+
+func (s *StateNode) GetSource() SourceRef {
+	if s == nil {
+		return SourceRef{}
+	}
+	return s.Source
 }
 
 // StateTransition represents a directed transition between two states.
