@@ -19,6 +19,9 @@ clean:
 install:
 	go install ./cmd/agent-diagram
 
+install-plugin: build install
+	./$(BINARY_NAME) install-plugin
+
 run-example: build
 	./$(BINARY_NAME) render examples/kueue_resize.mmd --width 120
 	@echo ""

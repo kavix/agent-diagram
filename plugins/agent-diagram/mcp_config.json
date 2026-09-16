@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "agent-diagram": {
+      "command": "agent-diagram",
+      "args": ["mcp"]
+    }
+  }
+}
